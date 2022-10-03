@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "mayitofuncs": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7071"
+    }
+  }
+}
