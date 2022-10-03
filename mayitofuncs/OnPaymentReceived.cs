@@ -16,17 +16,26 @@ namespace mayitofuncs
 {
     public static class OnPaymentReceived
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="req"></param>
+        /// <param name="orderQueue">Instance of IAsyncCollector which will allow us to send messages to
+        /// this queue from inside my azure function by calling the AddAsync method</param>
+        /// <param name="log"></param>
+        /// <returns></returns>
         [FunctionName("OnPaymentReceived")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-          //  [Queue("orders")] IAsyncCollector<Order> orderQueue,
+            [Queue("orders")] IAsyncCollector<Order> orderQueue,
             ILogger log)
         {
             log.LogInformation("Received a payment.");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var order = JsonConvert.DeserializeObject<Order>(requestBody);
-            // await orderQueue.AddAsync(order);
+            // end order to queue
+            await orderQueue.AddAsync(order);
             log.LogInformation($"Order {order.OrderId} received from {order.Email} for product {order.ProductId}");
             return new OkObjectResult($"Thank you for your purchase");
         }
