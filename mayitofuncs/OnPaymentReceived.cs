@@ -1,16 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System;
+using System.IO;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs;
+using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace mayitofuncs
 {
@@ -28,6 +24,7 @@ namespace mayitofuncs
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             [Queue("orders")] IAsyncCollector<Order> orderQueue,
+            [Table("orders")] IAsyncCollector<Order> orderTable,
             ILogger log)
         {
             log.LogInformation("Received a payment.");
@@ -36,6 +33,11 @@ namespace mayitofuncs
             var order = JsonConvert.DeserializeObject<Order>(requestBody);
             // end order to queue
             await orderQueue.AddAsync(order);
+
+            order.PartitionKey = "orders"; // just one partition (for demo purposes)
+            order.RowKey = order.OrderId;
+            await orderTable.AddAsync(order);
+
             log.LogInformation($"Order {order.OrderId} received from {order.Email} for product {order.ProductId}");
             return new OkObjectResult($"Thank you for your purchase");
         }
@@ -43,6 +45,14 @@ namespace mayitofuncs
 
     public class Order
     {
+        /// <summary>
+        /// Composite key along with RowKey
+        /// </summary>
+        public string PartitionKey { get; set; }
+        /// <summary>
+        /// Composite key along with PartitionKey
+        /// </summary>
+        public string RowKey { get; set; }
         public string OrderId { get; set; }
         public string ProductId { get; set; }
         public string Email { get; set; }
